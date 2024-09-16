@@ -1,11 +1,86 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Header from "./Header";
-
+import { validateData } from "../utils/validate";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
+import { auth } from "../utils/firebase";
+import { useNavigate } from "react-router-dom";
+import { updateProfile } from "firebase/auth";
+import { useDispatch } from "react-redux";
+import { addUser } from "../utils/userSlice";
 const Login = () => {
   const [toggleSignInFormVariable, setToggleSignInForm] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const email = useRef(null);
+  const password = useRef(null);
+  const name = useRef(null);
 
   const toggleSignInForm = () => {
     setToggleSignInForm(!toggleSignInFormVariable);
+  };
+
+  const handleSubmitForm = (e) => {
+    e.preventDefault();
+
+    const errorMessage = validateData(
+      email.current.value,
+      password.current.value
+    );
+    setErrorMessage(errorMessage);
+    if (errorMessage) return;
+
+    if (!toggleSignInFormVariable) {
+      createUserWithEmailAndPassword(
+        auth,
+        email.current.value,
+        password.current.value
+      )
+        .then((userCredential) => {
+          const user = userCredential.user;
+
+          updateProfile(user, {
+            displayName: name.current.value,
+            photoURL:
+              "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQJD0E_G_cUHGwvaA4mXzofonjOm6TJRE7t5w&s",
+          })
+            .then(() => {
+              const { uid, email, displayName, photoURL } = auth.currentUser;
+
+              dispatch(addUser({ uid, email, displayName, photoURL }));
+              navigate("/browse");
+            })
+            .catch((error) => {
+              // An error occurred
+              // ...
+            });
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          setErrorMessage(errorCode + " -" + errorMessage);
+          // ..
+        });
+    } else {
+      signInWithEmailAndPassword(
+        auth,
+        email.current.value,
+        password.current.value
+      )
+        .then((userCredential) => {
+          // Signed in
+          const user = userCredential.user;
+          navigate("/browse");
+          // ...
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+        });
+    }
   };
 
   return (
@@ -23,22 +98,29 @@ const Login = () => {
         </h1>
         {!toggleSignInFormVariable && (
           <input
+            ref={name}
             type="text"
             placeholder="Enter Full Name"
             className="p-2 my-4 w-full bg-gray-700"
           />
         )}
         <input
+          ref={email}
           type="text"
           placeholder="Email A ddress"
           className="p-2 my-4 w-full bg-gray-700 "
         />
         <input
+          ref={password}
           type="text"
           placeholder="Password"
           className="p-2 my-4 w-full bg-gray-700"
         />
-        <button className="p-4 my-6 bg-red-700 w-full rounded-lg ">
+        <p className="text-red-500 font-bold text-lg py-2">{errorMessage}</p>
+        <button
+          className="p-4 my-6 bg-red-700 w-full rounded-lg "
+          onClick={handleSubmitForm}
+        >
           {toggleSignInFormVariable ? "Sign In" : "Sign Up"}
         </button>
         <p onClick={toggleSignInForm} className="cursor-pointer">
