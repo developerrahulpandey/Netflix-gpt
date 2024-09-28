@@ -1,6 +1,7 @@
 import { useSelector } from "react-redux";
 import VideoTitle from "./VideoTitles.js";
 import Teaser from "./Teaser.js";
+import SecondaryContainer from "./SecondaryContainer.js";
 
 const MainContent = () => {
   const movies = useSelector((state) => state.movie?.nowPlayingMovies);
@@ -12,6 +13,7 @@ const MainContent = () => {
     <div>
       <VideoTitle title={original_title} overview={overview} />
       <Teaser movieId={id} />
+      <SecondaryContainer />
     </div>
   );
 };
